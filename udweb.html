@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Quét Mã QR CCCD</title>
+  <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+  <script>
+    function onScanSuccess(decodedText, decodedResult) {
+      // Giả sử dữ liệu trong mã QR có định dạng: cccd,hoTen,ngaySinh,diaChi
+      var data = decodedText.split(',');
+
+      // Trích xuất thông tin từ mã QR
+      var cccd = data[0];      // Số CCCD
+      var hoTen = data[1];     // Họ và tên
+      var ngaySinh = data[2];  // Ngày sinh
+      var diaChi = data[3];    // Địa chỉ
+
+      // Gửi dữ liệu đến Google Apps Script Web App
+      fetch('YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cccd: cccd,
+          hoTen: hoTen,
+          ngaySinh: ngaySinh,
+          diaChi: diaChi
+        })
+      })
+      .then(response => response.text())
+      .then(data => alert('Dữ liệu đã được lưu vào Google Sheets'))
+      .catch(error => console.error('Lỗi khi gửi dữ liệu:', error));
+    }
+
+    function startScanning() {
+      var video = document.createElement('video');
+      var canvasElement = document.createElement('canvas');
+      var canvas = canvasElement.getContext('2d');
+
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(function(stream) {
+          video.srcObject = stream;
+          video.setAttribute('playsinline', true);  // required for iOS Safari
+          video.play();
+
+          requestAnimationFrame(scanQRCode);
+
+          function scanQRCode() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+              canvasElement.height = video.videoHeight;
+              canvasElement.width = video.videoWidth;
+              canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+              var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+              var decoded = jsQR(imageData.data, canvasElement.width, canvasElement.height);
+
+              if (decoded) {
+                onScanSuccess(decoded.data, decoded);
+              }
+            }
+            requestAnimationFrame(scanQRCode);
+          }
+        })
+        .catch(function(error) {
+          alert("Không thể truy cập camera.");
+        });
+    }
+  </script>
+</head>
+<body>
+  <h1>Quét Mã QR Căn Cước Công Dân</h1>
+  <button onclick="startScanning()">Bắt đầu quét</button>
+  <p>Hướng dẫn: Quét mã QR từ căn cước công dân của bạn.</p>
+</body>
+</html>
